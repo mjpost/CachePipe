@@ -1,0 +1,2 @@
+- dependency lists should be matched against arguments in the command
+  line, so that their globs can be substituted for the file name
