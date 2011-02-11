@@ -1,0 +1,22 @@
+-- USAGE -------------------------------------------------------------
+
+$ export CACHEPIPE=/path/to/cachepipe
+$ export PERL5LIB=$PERL5LIB:$CACHEPIPE
+
+
+- From the command line:
+
+    $ perl -MCachePipe -e 'cache("name",["input-file1","input-file2"],COMMAND,["output-file1, output-file2, ..."])'
+
+  e.g., 
+
+    $ perl -MCachePipe -e 'cache("ls",["input-file"],"ls > input-file; cp input-file output-file",["output-file"])'
+
+- From a Perl script:
+
+    my $pipe = new CachePipe();
+    $pipe->cmd($name,\@input_deps,$cmd,\@output_deps);
+
+  e.g.,
+
+    $pipe->cmd("ls",["input-file"],"ls > input-file; cp input-file output-file",["output-file"]);
