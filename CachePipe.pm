@@ -34,9 +34,9 @@ sub new {
   my %params = @_;
   # default values
   my $self = { 
-	dir     => ".#pipe",
+	dir     => ".cachepipe",
 	basedir => $ENV{PWD},
-	email   => 'Matt Post <post@jhu.edu>',
+	email   => undef,
   };
 
   map { $self->{$_} = $params{$_} } keys %params;
@@ -45,17 +45,25 @@ sub new {
   return $self;
 }
 
+# Runs a command (if required)
+# name: the (unique) name assigned to this command
+# input_deps: an array ref of input file dependencies
+# cmd: the complete command to run
+# output_deps: an array ref of output file dependencies
 sub cmd {
-  my ($self,$name,$cmd,@deps) = @_;
+  my ($self,$name,$input_deps,$cmd,$output_deps) = @_;
 
   die "no name provided" unless $name ne "";
 
+  # whether to run the command
   my $regenerate = 0;
 
+  # the directory where cache information is written
   my $dir = $self->{dir};
   my $namedir = "$dir/$name";
 
   if (! -d $dir) {
+	# if no caching has ever been done
 
 	$regenerate = 1;
 
@@ -63,54 +71,72 @@ sub cmd {
 	mkdir($namedir);
 
   } elsif (! -d $namedir)  {
+	# otherwise, if this command hasn't yet been cached...
 	$regenerate = 1;
 
 	mkdir($namedir);
 
   } elsif (! -e "$namedir/signature") { 
+	# otherwise if the signature file doesn't exist...
 	$regenerate = 1;
 
   } else {
+	# everything exists, but we need to check whether anything has changed
 
-	my @sigs = map { file_signature($_) } @deps;
-	my $new_signature = signature(join(" ", $cmd, @deps));
+	# generate git-style signatures for input and output files
+	my @sigs = map { file_signature($_) } @$input_deps;
+	push(@sigs, map { file_signature($_) } @$output_deps);
 
-	open(READ, "$namedir/signature");
+	# generate a signature of the concatenation of the command and the
+	# dependency signatures
+	# TODO: 
+	my $new_signature = signature(join(" ", $cmd, @sigs));
+
+	open(READ, "$namedir/signature") or die "no such file '$namedir/signature'";
 	my @file = <READ>;
 	close(READ);
 	my $old_signature = join("", @file);
 
+	# regenerate if the signature has changed
 	$regenerate = ($old_signature eq $new_signature) ? 0 : 1;
   }
 
   if ($regenerate) {
-	mylog("[$name] rebuilding...");
-	map { mylog("  dep=$_"); } @deps;
-	mylog("  cmd=$cmd");
+	$self->mylog("[$name] rebuilding...");
+	map { $self->mylog("  input_dep=$_"); } @$input_deps;
+	map { $self->mylog("  output_dep=$_"); } @$output_deps;
+	$self->mylog("  cmd=$cmd");
 	system($cmd);
+  } else {
+	$self->mylog("[$name] skipping");
   }
 
   # regenerate signature
-  my @sigs = map { file_signature($_) } @deps;
-  my $new_signature = signature(join(" ", $cmd, @deps));
+  my @sigs = map { file_signature($_) } @$input_deps;
+  push(@sigs, map { file_signature($_) } @$output_deps);
+  my $new_signature = signature(join(" ", $cmd, @sigs));
   open(WRITE, ">$namedir/signature");
   print WRITE $new_signature;
   close(WRITE);
 }
 
-# thanks http://stackoverflow.com/questions/552659/assigning-git-sha1s-without-git
+# Generates a GIT-style signature of a file.  Thanks to
+# http://stackoverflow.com/questions/552659/assigning-git-sha1s-without-git
 sub file_signature {
   my ($filename) = @_;
 
-  open(READ, $filename);
-  my @file_contents = <READ>;
-  close(READ);
+  my $content = "";
+  if (open(READ, $filename)) {
+	my @file_contents = <READ>;
+	close(READ);
 
-  my $content = join("",@file_contents);
+	$content = join("",@file_contents);
+  } 
 
   return signature($content);
 }
 
+# Generates a GIT-style signature of a string
 sub signature {
   my ($content) = @_;
 
@@ -123,7 +149,9 @@ sub signature {
 }
 
 sub mylog {
-	my ($self) = @_;
+	my ($self,$msg) = @_;
+
+	print STDERR $msg . $/;
 }
 
 1;
