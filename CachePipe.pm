@@ -9,7 +9,7 @@ use vars qw|$VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS|;
 # our($lexicon,%rules,%deps,%PARAMS,$base_measure);
 
 @ISA = qw|Exporter|;
-@EXPORT = qw|signature file_signature|;
+@EXPORT = qw|signature file_signature cache|;
 @EXPORT_OK = ();
 
 use strict;
@@ -43,6 +43,13 @@ sub new {
   bless($self,$class);
 
   return $self;
+}
+
+# static version of cmd()
+sub cache {
+  my @args = @_;
+  my $pipe = new CachePipe();
+  $pipe->cmd(@args);
 }
 
 # Runs a command (if required)
