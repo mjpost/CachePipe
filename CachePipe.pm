@@ -52,13 +52,43 @@ sub cache {
   $pipe->cmd(@args);
 }
 
+sub build_signatures {
+  my ($cmd,@deps) = @_;
+
+  # generate git-style signatures for input and output files
+  my @sigs = map { sha1hash($_) } @deps;
+
+  # walk through the command line and substitute signatures for file names
+  my %filehash;
+  for my $i (0..$#deps) {
+	my $file = $deps[$i];
+	$filehash{$file} = $sigs[$i];
+  }
+  my @tokens = split(' ',$cmd);
+  for my $i (0..$#tokens) {
+	my $token = $tokens[$i];
+	if (exists $filehash{$token}) {
+	  $tokens[$i] = $filehash{$token};
+	}
+  }
+  # print STDERR "CMDSIG($cmd) = " . join(" ",@tokens) . $/;
+  my $cmdsig = join(" ",@tokens);
+
+  # generate a signature of the concatenation of the command and the
+  # dependency signatures
+  # TODO: 
+  my $new_signature = signature(join(" ", $cmdsig, @sigs));
+  
+  return ($new_signature,$cmdsig,@sigs);
+}
+
 # Runs a command (if required)
 # name: the (unique) name assigned to this command
 # input_deps: an array ref of input file dependencies
 # cmd: the complete command to run
 # output_deps: an array ref of output file dependencies
 sub cmd {
-  my ($self,$name,$input_deps,$cmd,$output_deps) = @_;
+  my ($self,$name,$cmd,@deps) = @_;
 
   die "no name provided" unless $name ne "";
 
@@ -69,76 +99,80 @@ sub cmd {
   my $dir = $self->{dir};
   my $namedir = "$dir/$name";
 
+  my ($new_signature,$cmdsig,@sigs) = build_signatures($cmd,@deps);
+  my $old_signature = "";
+
   if (! -d $dir) {
 	# if no caching has ever been done
-
-	$regenerate = 1;
 
 	mkdir($dir);
 	mkdir($namedir);
 
   } elsif (! -d $namedir)  {
 	# otherwise, if this command hasn't yet been cached...
-	$regenerate = 1;
 
 	mkdir($namedir);
 
   } elsif (! -e "$namedir/signature") { 
 	# otherwise if the signature file doesn't exist...
-	$regenerate = 1;
 
   } else {
 	# everything exists, but we need to check whether anything has changed
 
-	# generate git-style signatures for input and output files
-	my @sigs = map { file_signature($_) } @$input_deps;
-	push(@sigs, map { file_signature($_) } @$output_deps);
-
-	# generate a signature of the concatenation of the command and the
-	# dependency signatures
-	# TODO: 
-	my $new_signature = signature(join(" ", $cmd, @sigs));
-
-	open(READ, "$namedir/signature") or die "no such file '$namedir/signature'";
-	my @file = <READ>;
+	open(READ, "$namedir/signature") 
+		or die "no such file '$namedir/signature'";
+	chomp($old_signature = <READ>);
 	close(READ);
-	my $old_signature = join("", @file);
-
-	# regenerate if the signature has changed
-	$regenerate = ($old_signature eq $new_signature) ? 0 : 1;
   }
 
-  if ($regenerate) {
+  if ($old_signature ne $new_signature) {
 	$self->mylog("[$name] rebuilding...");
-	map { $self->mylog("  input_dep=$_"); } @$input_deps;
-	map { $self->mylog("  output_dep=$_"); } @$output_deps;
+	map { $self->mylog("  dep=$_"); } @deps;
 	$self->mylog("  cmd=$cmd");
 	system($cmd);
-  } else {
-	$self->mylog("[$name] skipping");
-  }
 
-  # regenerate signature
-  my @sigs = map { file_signature($_) } @$input_deps;
-  push(@sigs, map { file_signature($_) } @$output_deps);
-  my $new_signature = signature(join(" ", $cmd, @sigs));
-  open(WRITE, ">$namedir/signature");
-  print WRITE $new_signature;
-  close(WRITE);
+	my ($new_signature,$cmdsig,@sigs) = build_signatures($cmd,@deps);
+
+	# regenerate signature
+	open(WRITE, ">$namedir/signature");
+	print WRITE $new_signature . $/;
+	
+	print WRITE "$cmdsig CMD $cmd\n";
+	map {
+	  print WRITE "$sigs[$_] DEPENDENCY $deps[$_]\n";
+	} (0..$#sigs);
+	close(WRITE);
+
+	# generate timestamp
+	open(WRITE, ">$namedir/timestamp");
+	print WRITE time() . $/;
+	close(WRITE);
+
+  } else {
+	$self->mylog("[$name] cached, skipping...");
+  }
 }
 
 # Generates a GIT-style signature of a file.  Thanks to
 # http://stackoverflow.com/questions/552659/assigning-git-sha1s-without-git
-sub file_signature {
-  my ($filename) = @_;
+sub sha1hash {
+  my ($arg) = @_;
 
-  my $content = "";
-  if (open(READ, $filename)) {
-	my @file_contents = <READ>;
-	close(READ);
+  my $content = time();
+  if ($arg =~ /^ENV:/) {
+	my (undef,$env) = split(':',$arg);
+	$content = $ENV{$env} || "";
+	# print STDERR "ENV '$env' $content\n";
+  } else {
+	if (open(READ, $arg)) {
+	  my @file_contents = <READ>;
+	  close(READ);
 
-	$content = join("",@file_contents);
-  } 
+	  $content = join("",@file_contents);
+	} else {
+	  print STDERR "couldn't open $arg\n";
+	}
+  }
 
   return signature($content);
 }

@@ -11,6 +11,8 @@ use CachePipe;
 my $cache = new CachePipe();
 
 $cache->cmd("ls",
-			["input-file"],
 			"cp input-file output-file",
-			["output-file"]);
+			"input-file",
+			"output-file",
+			"ENV:cachepipe"
+);
