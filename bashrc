@@ -21,15 +21,15 @@ cachecmd() {
 		shift
 		shift
 
-		args=""
+		tmpfile=.cachepipe.$$.$(date +%s)
+		echo $name > $tmpfile		
+		echo $cmd >> $tmpfile
 		for arg in $@; do
-			if test -z "$args"; then
-				args="'$arg'"
-			else
-				args="$args, '$arg'"
-			fi
+			echo $arg >> $tmpfile
 		done
 
-		perl -MCachePipe -e "cache('$name','$cmd',$args)"
+		# echo $tmpfile
+		perl -MCachePipe -e "cache_from_file('$tmpfile')"
+		rm -f $tmpfile
 	fi
 }
