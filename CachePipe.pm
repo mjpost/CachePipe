@@ -150,7 +150,23 @@ sub cmd {
 	$self->mylog("[$name] rebuilding...");
 	map { $self->mylog("  dep=$_"); } @deps;
 	$self->mylog("  cmd=$cmd");
+
+	# run the command
+	# redirect stdout and stderr
+	#
+	open OLDOUT, ">&", \*STDOUT or die;
+	open OLDERR, ">&", \*STDERR or die;
+
+	open(STDOUT,">$namedir/out") or die;
+	open(STDERR,">$namedir/err") or die;
+
 	system($cmd);
+
+	close(STDOUT);
+	close(STDERR);
+
+	open(STDOUT,">&", \*OLDOUT);
+	open(STDERR,">&", \*OLDERR);
 
 	my ($new_signature,$cmdsig,@sigs) = build_signatures($cmd,@deps);
 
@@ -190,8 +206,6 @@ sub sha1hash {
 	  close(READ);
 
 	  $content = join("",@file_contents);
-	} else {
-	  print STDERR "couldn't open $arg\n";
 	}
   }
 
