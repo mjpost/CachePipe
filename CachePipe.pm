@@ -9,7 +9,7 @@ use vars qw|$VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS|;
 # our($lexicon,%rules,%deps,%PARAMS,$base_measure);
 
 @ISA = qw|Exporter|;
-@EXPORT = qw|signature file_signature cache|;
+@EXPORT = qw|signature cache cache_from_file|;
 @EXPORT_OK = ();
 
 use strict;
@@ -52,8 +52,29 @@ sub cache {
   $pipe->cmd(@args);
 }
 
+# static version that reads args from file
+sub cache_from_file {
+  my ($file) = @_;
+
+  my @args;
+  open READ, $file or die;
+  while (my $line = <READ>) {
+	chomp($line);
+	push(@args,$line);
+  }
+  close(READ);
+
+  # print join("\n",@args) . $/;
+
+  my $pipe = new CachePipe();
+  $pipe->cmd(@args);
+}
+
 sub build_signatures {
   my ($cmd,@deps) = @_;
+
+  # print STDERR "CMD: $cmd\n";
+  # map { print STDERR "DEP: $_\n" } @deps;
 
   # generate git-style signatures for input and output files
   my @sigs = map { sha1hash($_) } @deps;
