@@ -113,9 +113,6 @@ sub cmd {
 
   die "no name provided" unless $name ne "";
 
-  # whether to run the command
-  my $regenerate = 0;
-
   # the directory where cache information is written
   my $dir = $self->{dir};
   my $namedir = "$dir/$name";
@@ -148,7 +145,12 @@ sub cmd {
 
   if ($old_signature ne $new_signature) {
 	$self->mylog("[$name] rebuilding...");
-	map { $self->mylog("  dep=$_"); } @deps;
+	foreach my $dep (@deps) {
+	  if (-e $dep) {
+		$self->mylog("  dep=$_");
+	  } else {
+		$self->mylog("  dep=$_ [NOT FOUND]");
+	  }
 	$self->mylog("  cmd=$cmd");
 
 	# run the command
