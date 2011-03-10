@@ -20,6 +20,7 @@ use threads::shared;
 use POSIX qw|strftime|;
 use List::Util qw|reduce min shuffle sum|;
 use Digest::SHA1;
+use IO::Handle;
 # use Memoize;
 
 # my $basedir;
@@ -41,6 +42,8 @@ sub new {
 
   map { $self->{$_} = $params{$_} } keys %params;
   bless($self,$class);
+
+  STDERR->autoflush(1);
 
   return $self;
 }
@@ -147,10 +150,11 @@ sub cmd {
 	$self->mylog("[$name] rebuilding...");
 	foreach my $dep (@deps) {
 	  if (-e $dep) {
-		$self->mylog("  dep=$_");
+		$self->mylog("  dep=$dep");
 	  } else {
-		$self->mylog("  dep=$_ [NOT FOUND]");
+		$self->mylog("  dep=$dep [NOT FOUND]");
 	  }
+        }
 	$self->mylog("  cmd=$cmd");
 
 	# run the command
@@ -230,6 +234,7 @@ sub mylog {
 	my ($self,$msg) = @_;
 
 	print STDERR $msg . $/;
+        
 }
 
 1;
