@@ -122,6 +122,7 @@ sub cmd {
 
   my ($new_signature,$cmdsig,@sigs) = build_signatures($cmd,@deps);
   my $old_signature = "";
+  my @old_sigs = ("") x @sigs;
 
   if (! -d $dir) {
 	# if no caching has ever been done
@@ -143,16 +144,21 @@ sub cmd {
 	open(READ, "$namedir/signature") 
 		or die "no such file '$namedir/signature'";
 	chomp($old_signature = <READ>);
+	<READ>;
+	chomp(@old_sigs = <READ>);
 	close(READ);
   }
 
   if ($old_signature ne $new_signature) {
 	$self->mylog("[$name] rebuilding...");
-	foreach my $dep (@deps) {
+	for my $i (0..$#deps) {
+	  my $dep = $deps[$i];
+
+	  my $diff = ($sigs[$i] eq $old_sigs[$i]) ? "" : "[CHANGED]";
 	  if (-e $dep) {
-		$self->mylog("  dep=$dep");
+		$self->mylog("  dep=$dep $diff");
 	  } else {
-		$self->mylog("  dep=$dep [NOT FOUND]");
+		$self->mylog("  dep=$dep [NOT FOUND] $diff");
 	  }
         }
 	$self->mylog("  cmd=$cmd");
