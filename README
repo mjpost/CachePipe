@@ -1,3 +1,7 @@
+Cachepipe: A caching pipeline that doesn't require you to care about it.
+
+
+
 -- USAGE -------------------------------------------------------------
 
 $ export CACHEPIPE=/path/to/cachepipe

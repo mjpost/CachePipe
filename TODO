@@ -9,3 +9,7 @@
   - rebuild when two files have a different number of lines (useful
     when a command got aborted partway through processing a file)
 
+- it would be nice to be able to re-run individual pipeline commands
+  directly from the cache
+
+- print warnings when files don't exist

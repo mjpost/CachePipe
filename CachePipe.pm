@@ -9,7 +9,7 @@ use vars qw|$VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS|;
 # our($lexicon,%rules,%deps,%PARAMS,$base_measure);
 
 @ISA = qw|Exporter|;
-@EXPORT = qw|signature cache cache_from_file|;
+@EXPORT = qw|signature cache cache_from_file sha1hash|;
 @EXPORT_OK = ();
 
 use strict;
@@ -207,24 +207,38 @@ sub sha1hash {
 	$content = $ENV{$env} || "";
 	# print STDERR "ENV '$env' $content\n";
   } else {
-	if (open(READ, $arg)) {
-	  my @file_contents = <READ>;
-	  close(READ);
-
-	  $content = join("",@file_contents);
+	if (-e $arg) {
+	  return file_signature($arg);
 	}
   }
 
   return signature($content);
 }
 
+# Generates a GIT-style signature of a string *without* loading the whole file into memory 
+sub file_signature {
+  my ($file) = @_;
+
+  my $size = (stat($file))[7];
+  chomp(my $sha1 = `(echo -ne "blob $size\\0"; cat $file) | sha1sum -b | awk '{print \$1}'`);
+
+  return $sha1;
+}
+
+
 # Generates a GIT-style signature of a string
 sub signature {
   my ($content) = @_;
 
+  my $length;
+  {
+	use bytes;
+	$length = length($content);
+  }
   my $git_blob = 'blob' . ' ' . length($content) . "\0" . $content;
 
   my $sha1 = new Digest::SHA1;
+
   $sha1->add($git_blob);
 
   return $sha1->hexdigest();
