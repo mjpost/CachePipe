@@ -144,9 +144,16 @@ sub cmd {
 	open(READ, "$namedir/signature") 
 		or die "no such file '$namedir/signature'";
 	chomp($old_signature = <READ>);
+
+	# throw away command signature line
 	<READ>;
-	chomp(@old_sigs = <READ>);
-	close(READ);
+
+	# read in file dependency signatures
+	while (my $line = <READ>) {
+	  my @tokens = split(' ',$line);
+	  push(@old_sigs, $tokens[0]);
+	}
+	close (READ);
   }
 
   if ($old_signature ne $new_signature) {
@@ -154,7 +161,7 @@ sub cmd {
 	for my $i (0..$#deps) {
 	  my $dep = $deps[$i];
 
-	  my $diff = ($sigs[$i] eq $old_sigs[$i]) ? "" : "[CHANGED]";
+	  my $diff = ($sigs[$i] eq $old_sigs[$i]) ? "" : "[CHANGED] (SIG=$sigs[$i] OLDSIG=$old_sigs[$i])";
 	  if (-e $dep) {
 		$self->mylog("  dep=$dep $diff");
 	  } else {
