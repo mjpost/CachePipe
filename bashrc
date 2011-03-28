@@ -15,15 +15,16 @@ cachecmd() {
 	if [ -z "$2" ]; then
 		cachecmd_usage
 	else
-		name=$1
-		cmd=$2
+		local name=$1
+		local cmd=$2
 
 		shift
 		shift
 
-		tmpfile=.cachepipe.$$.$(date +%s)
+		local tmpfile=.cachepipe.$$.$(date +%s)
 		echo $name > $tmpfile		
 		echo $cmd >> $tmpfile
+ 		local arg
 		for arg in $@; do
 			echo $arg >> $tmpfile
 		done
