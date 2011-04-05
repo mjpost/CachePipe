@@ -161,7 +161,7 @@ sub cmd {
 	for my $i (0..$#deps) {
 	  my $dep = $deps[$i];
 
-	  my $diff = ($sigs[$i] eq $old_sigs[$i]) ? "" : "[CHANGED] (SIG=$sigs[$i] OLDSIG=$old_sigs[$i])";
+	  my $diff = ($sigs[$i] eq $old_sigs[$i]) ? "" : "[CHANGED]";
 	  if (-e $dep) {
 		$self->mylog("  dep=$dep $diff");
 	  } else {
