@@ -37,6 +37,7 @@ sub new {
   my $self = { 
 	dir     => ".cachepipe",
 	basedir => $ENV{PWD},
+	retval  => 0,  # expected return value
 	email   => undef,
   };
 
@@ -187,22 +188,30 @@ sub cmd {
 	open(STDOUT,">&", \*OLDOUT);
 	open(STDERR,">&", \*OLDERR);
 
-	my ($new_signature,$cmdsig,@sigs) = build_signatures($cmd,@deps);
+	my $retval = $? >> 8;
+	if ($retval == $self->{retval}) {
 
-	# regenerate signature
-	open(WRITE, ">$namedir/signature");
-	print WRITE $new_signature . $/;
-	
-	print WRITE "$cmdsig CMD $cmd\n";
-	map {
-	  print WRITE "$sigs[$_] DEPENDENCY $deps[$_]\n";
-	} (0..$#sigs);
-	close(WRITE);
+	  my ($new_signature,$cmdsig,@sigs) = build_signatures($cmd,@deps);
 
-	# generate timestamp
-	open(WRITE, ">$namedir/timestamp");
-	print WRITE time() . $/;
-	close(WRITE);
+	  # regenerate signature
+	  open(WRITE, ">$namedir/signature");
+	  print WRITE $new_signature . $/;
+	  
+	  print WRITE "$cmdsig CMD $cmd\n";
+	  map {
+		print WRITE "$sigs[$_] DEPENDENCY $deps[$_]\n";
+	  } (0..$#sigs);
+	  close(WRITE);
+
+	  # generate timestamp
+	  open(WRITE, ">$namedir/timestamp");
+	  print WRITE time() . $/;
+	  close(WRITE);
+	} else {
+	  $self->mylog("  JOB FAILED (return code $retval)");
+	  system("cat $namedir/err");
+	  exit(-1);
+	}
 
   } else {
 	$self->mylog("[$name] cached, skipping...");
