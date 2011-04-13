@@ -266,21 +266,19 @@ sub signature {
 	$length = length($content);
   }
 
-  my $git_blob = 'blob' . ' ' . length($content) . "\\0" . $content;
+  my $git_blob = 'blob' . ' ' . length($content) . "\0" . $content;
   my $tmpfile = ".tmp.$$";
   open OUT, ">$tmpfile" or die;
   print OUT $git_blob;
   close(OUT);
   chomp(my $sha1 = `cat $tmpfile | sha1sum -b | awk '{ print \$1 }'`);
-  # chomp(my $sha1 = `echo '$git_blob' | sha1sum -b | awk '{ print \$1 }'`);
   unlink($tmpfile);
-  # print $sha1 . $/;
+  return $sha1;
 
+  # my $git_blob = 'blob' . ' ' . length($content) . "\0" . $content;
   # my $sha = new Digest::SHA1();
   # $sha->add($git_blob);
-  # print $sha->hexdigest() . $/;
-
-  return $sha1;
+  # return $sha->hexdigest() . $/;
 }
 
 sub mylog {
