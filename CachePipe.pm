@@ -19,7 +19,6 @@ use threads;
 use threads::shared;
 use POSIX qw|strftime|;
 use List::Util qw|reduce min shuffle sum|;
-use Digest::SHA1;
 use IO::Handle;
 # use Memoize;
 
@@ -112,6 +111,9 @@ sub build_signatures {
 # input_deps: an array ref of input file dependencies
 # cmd: the complete command to run
 # output_deps: an array ref of output file dependencies
+#
+# return code 1: command was re-run
+# return code 0: command was cached
 sub cmd {
   my ($self,$name,$cmd,@deps) = @_;
 
@@ -207,6 +209,9 @@ sub cmd {
 	  open(WRITE, ">$namedir/timestamp");
 	  print WRITE time() . $/;
 	  close(WRITE);
+
+	  return 1;
+
 	} else {
 	  $self->mylog("  JOB FAILED (return code $retval)");
 	  system("cat $namedir/err");
@@ -215,6 +220,8 @@ sub cmd {
 
   } else {
 	$self->mylog("[$name] cached, skipping...");
+
+	return 0;
   }
 }
 
@@ -257,13 +264,16 @@ sub signature {
 	use bytes;
 	$length = length($content);
   }
-  my $git_blob = 'blob' . ' ' . length($content) . "\0" . $content;
 
-  my $sha1 = new Digest::SHA1;
+  my $git_blob = 'blob' . ' ' . length($content) . "\\0" . $content;
+  my $tmpfile = ".tmp.$$";
+  open OUT, ">$tmpfile" or die;
+  close(OUT);
+  chomp(my $sha1 = `cat OUT | sha1sum -b | awk '{ print \$1 }'`);
+  # chomp(my $sha1 = `echo '$git_blob' | sha1sum -b | awk '{ print \$1 }'`);
+  unlink($tmpfile);
 
-  $sha1->add($git_blob);
-
-  return $sha1->hexdigest();
+  return $sha1;
 }
 
 sub mylog {
