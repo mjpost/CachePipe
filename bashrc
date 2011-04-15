@@ -15,21 +15,14 @@ cachecmd() {
 	if [ -z "$2" ]; then
 		cachecmd_usage
 	else
-		local name=$1
-		local cmd=$2
-
-		shift
-		shift
-
 		local tmpfile=.cachepipe.$$.$(date +%s)
-		echo $name > $tmpfile		
-		echo $cmd >> $tmpfile
- 		local arg
-		for arg in $@; do
+		rm -f $tmpfile
+		# $@ must be in quotes, or quoted args get split up
+		# see VonC's answer at http://stackoverflow.com/questions/255898/how-to-iterate-over-arguments-in-bash-script
+		for arg in "$@"; do
 			echo $arg >> $tmpfile
 		done
 
-		# echo $tmpfile
 		perl -MCachePipe -e "cache_from_file('$tmpfile')"
 		rm -f $tmpfile
 	fi

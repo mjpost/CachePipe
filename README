@@ -1,12 +1,9 @@
 Cachepipe: A caching pipeline that doesn't require you to care about it.
 
-
-
 -- USAGE -------------------------------------------------------------
 
 $ export CACHEPIPE=/path/to/cachepipe
 $ export PERL5LIB=$PERL5LIB:$CACHEPIPE
-
 
 - From the command line:
 
@@ -16,6 +13,11 @@ $ export PERL5LIB=$PERL5LIB:$CACHEPIPE
 
     $ perl -MCachePipe -e 'cache("ls",["input-file"],"ls > input-file; cp input-file output-file",["output-file"])'
 
+- From the command line (easier):
+
+    $ source $CACHEPIPE/bashrc
+	$ cachecmd ls "ls > input-file" input-file
+
 - From a Perl script:
 
     my $pipe = new CachePipe();
@@ -24,3 +26,12 @@ $ export PERL5LIB=$PERL5LIB:$CACHEPIPE
   e.g.,
 
     $pipe->cmd("ls",["input-file"],"ls > input-file; cp input-file output-file",["output-file"]);
+
+You can tell the command to build the cache files without actually
+running the command using the --cache-only flag between the command
+name and the command, i.e.
+
+    $ cachecmd ls --cache-only "ls > input-file" input-file
+
+This will compute the hash over all the dependencies and the command as
+if the current state were the desired state.

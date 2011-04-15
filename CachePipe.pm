@@ -116,9 +116,28 @@ sub build_signatures {
 # return code 1: command was re-run
 # return code 0: command was cached
 sub cmd {
-  my ($self,$name,$cmd,@deps) = @_;
+  my ($self,$name,@args) = @_;
 
   die "no name provided" unless $name ne "";
+
+  my ($cmd,@deps);
+  my ($cache_only) = 0;
+  while (my $arg = shift @args) {
+	if ($arg =~ /^--/) {
+	  $arg =~ s/^--//;
+	  if ($arg eq "cache-only") {
+		# print STDERR "* argument: --$arg\n";
+		$cache_only = 1;
+	  } else {
+		print STDERR "* FATAL: CachePipe: unknown argument: --$arg\n";
+		exit 1;
+	  }
+	} else {
+	  $cmd = $arg;
+	  @deps = @args;
+	  last;
+	}
+  }
 
   # the directory where cache information is written
   my $dir = $self->{dir};
@@ -174,49 +193,42 @@ sub cmd {
         }
 	$self->mylog("  cmd=$cmd");
 
-	# run the command
-	# redirect stdout and stderr
-	#
-	open OLDOUT, ">&", \*STDOUT or die;
-	open OLDERR, ">&", \*STDERR or die;
+	if ($cache_only) {
 
-	open(STDOUT,">$namedir/out") or die;
-	open(STDERR,">$namedir/err") or die;
+	  write_signature($namedir,$cmd,@deps);
 
-	system($cmd);
-
-	close(STDOUT);
-	close(STDERR);
-
-	open(STDOUT,">&", \*OLDOUT);
-	open(STDERR,">&", \*OLDERR);
-
-	my $retval = $? >> 8;
-	if ($retval == $self->{retval}) {
-
-	  my ($new_signature,$cmdsig,@sigs) = build_signatures($cmd,@deps);
-
-	  # regenerate signature
-	  open(WRITE, ">$namedir/signature");
-	  print WRITE $new_signature . $/;
-	  
-	  print WRITE "$cmdsig CMD $cmd\n";
-	  map {
-		print WRITE "$sigs[$_] DEPENDENCY $deps[$_]\n";
-	  } (0..$#sigs);
-	  close(WRITE);
-
-	  # generate timestamp
-	  open(WRITE, ">$namedir/timestamp");
-	  print WRITE time() . $/;
-	  close(WRITE);
-
-	  return 1;
+	  return 0;
 
 	} else {
-	  $self->mylog("  JOB FAILED (return code $retval)");
-	  system("cat $namedir/err");
-	  exit(-1);
+	  # run the command
+	  # redirect stdout and stderr
+
+	  open OLDOUT, ">&", \*STDOUT or die;
+	  open OLDERR, ">&", \*STDERR or die;
+
+	  open(STDOUT,">$namedir/out") or die;
+	  open(STDERR,">$namedir/err") or die;
+
+	  system($cmd);
+
+	  close(STDOUT);
+	  close(STDERR);
+
+	  open(STDOUT,">&", \*OLDOUT);
+	  open(STDERR,">&", \*OLDERR);
+
+	  my $retval = $? >> 8;
+
+	  if ($retval == $self->{retval}) {
+		write_signature($namedir,$cmd,@deps);
+
+		return 1;
+
+	  } else {
+		$self->mylog("  JOB FAILED (return code $retval)");
+		system("cat $namedir/err");
+		exit(-1);
+	  }
 	}
 
   } else {
@@ -225,6 +237,28 @@ sub cmd {
 	return 0;
   }
 }
+
+sub write_signature {
+  my ($namedir,$cmd,@deps) = @_;
+
+  my ($new_signature,$cmdsig,@sigs) = build_signatures($cmd,@deps);
+
+  # regenerate signature
+  open(WRITE, ">$namedir/signature");
+  print WRITE $new_signature . $/;
+  
+  print WRITE "$cmdsig CMD $cmd\n";
+  map {
+	print WRITE "$sigs[$_] DEPENDENCY $deps[$_]\n";
+  } (0..$#sigs);
+  close(WRITE);
+
+  # generate timestamp
+  open(WRITE, ">$namedir/timestamp");
+  print WRITE time() . $/;
+  close(WRITE);
+}
+
 
 # Generates a GIT-style signature of a file.  Thanks to
 # http://stackoverflow.com/questions/552659/assigning-git-sha1s-without-git
