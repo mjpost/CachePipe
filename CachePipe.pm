@@ -143,6 +143,11 @@ sub cmd {
   my $dir = $self->{dir};
   my $namedir = "$dir/$name";
 
+  if (-e "$namedir/running") {
+	$self->mylog("[$name] already running, skipping...");
+	exit 1;
+  }
+
   my ($new_signature,$cmdsig,@sigs) = build_signatures($cmd,@deps);
   my $old_signature = "";
   my @old_sigs = ("") x @sigs;
@@ -180,7 +185,9 @@ sub cmd {
   }
 
   if ($old_signature ne $new_signature) {
-	$self->mylog("[$name] rebuilding...");
+	my $message = ($cache_only) ? "recaching" : "rebuilding";
+
+	$self->mylog("[$name] $message...");
 	for my $i (0..$#deps) {
 	  my $dep = $deps[$i];
 
@@ -190,7 +197,7 @@ sub cmd {
 	  } else {
 		$self->mylog("  dep=$dep [NOT FOUND] $diff");
 	  }
-        }
+	}
 	$self->mylog("  cmd=$cmd");
 
 	if ($cache_only) {
@@ -200,6 +207,8 @@ sub cmd {
 	  return 0;
 
 	} else {
+	  system("touch $namedir/running");
+
 	  # run the command
 	  # redirect stdout and stderr
 
@@ -222,10 +231,12 @@ sub cmd {
 	  if ($retval == $self->{retval}) {
 		write_signature($namedir,$cmd,@deps);
 
+		unlink("$namedir/running");
 		return 1;
 
 	  } else {
 		$self->mylog("  JOB FAILED (return code $retval)");
+		unlink("$namedir/running");
 		system("cat $namedir/err");
 		exit(-1);
 	  }
@@ -320,6 +331,20 @@ sub mylog {
 
 	print STDERR $msg . $/;
         
+}
+
+sub get_status {
+  my ($self,$name) = @_;
+
+  my $dir = $self->{dir};
+  my $namedir = "$dir/$name";
+
+  my $status = (-e "$namedir/status")
+	  ? `cat $namedir/status`
+	  : "";
+  chomp($status);
+	
+  return $status;
 }
 
 1;
