@@ -238,7 +238,8 @@ sub cmd {
 		my $stop_time = time();
 
 		my $seconds = ($stop_time - $start_time);
-		$self->mylog("  took $seconds seconds");
+		my $duration = pretty_print_time($seconds);
+		$self->mylog("  took $seconds seconds ($duration)");
 
 		return 1;
 
@@ -355,5 +356,27 @@ sub get_status {
   return $status;
 }
 
+sub pretty_print_time {
+  my $seconds = shift;
+
+  my $timestr = "";
+  if ($seconds >= 86400) {
+	my $days = $seconds / 86400;
+	$seconds %= 86400;
+	$timestr = "${days}d";
+  }
+  if ($seconds >= 3600) {
+	my $hours = $seconds / 3600;
+	$seconds %= 3600;
+	$timestr .= "${hours}h";
+  }
+  if ($seconds >= 60) {
+	my $minutes = $seconds / 60;
+	$seconds %= 60;
+	$timestr .= "${minutes}m";
+  }
+  $timestr .= "${seconds}s";
+  return $timestr;
+}
 1;
 
