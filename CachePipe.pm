@@ -209,6 +209,8 @@ sub cmd {
 	} else {
 	  system("touch $namedir/running");
 
+	  my $start_time = time();
+
 	  # run the command
 	  # redirect stdout and stderr
 
@@ -232,6 +234,12 @@ sub cmd {
 		write_signature($namedir,$cmd,@deps);
 
 		unlink("$namedir/running");
+
+		my $stop_time = time();
+
+		my $seconds = ($stop_time - $start_time);
+		$self->mylog("  took $seconds seconds");
+
 		return 1;
 
 	  } else {
