@@ -361,17 +361,17 @@ sub pretty_print_time {
 
   my $timestr = "";
   if ($seconds >= 86400) {
-	my $days = $seconds / 86400;
+	my $days = int($seconds / 86400);
 	$seconds %= 86400;
 	$timestr = "${days}d";
   }
   if ($seconds >= 3600) {
-	my $hours = $seconds / 3600;
+	my $hours = int($seconds / 3600);
 	$seconds %= 3600;
 	$timestr .= "${hours}h";
   }
   if ($seconds >= 60) {
-	my $minutes = $seconds / 60;
+	my $minutes = int($seconds / 60);
 	$seconds %= 60;
 	$timestr .= "${minutes}m";
   }
