@@ -1,15 +1,11 @@
-- the command line should be searched for files which would then
+- [ ] the command line should be searched for files which would then
   automatically become dependencies, unless listed in the list of
   dependencies preceded by a hyphen (this would help with long
   complicated series of pipes)
-
-- option to mail / text user when a task is done
-
-- more complex dependencies, e.g.,
-  - rebuild when two files have a different number of lines (useful
+- [ ] option to mail / text user when a task is done
+- [ ] more complex dependencies, e.g.,
+  - [ ] rebuild when two files have a different number of lines (useful
     when a command got aborted partway through processing a file)
-
-- it would be nice to be able to re-run individual pipeline commands
+- [X] it would be nice to be able to re-run individual pipeline commands
   directly from the cache
-
-- print warnings when files don't exist
+- [ ] print warnings when files don't exist
