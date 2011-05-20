@@ -179,6 +179,7 @@ sub cmd {
 	  $cmd =~ s/^.* CMD //;
 	  while (my $line = <READ>) {
 		my @tokens = split(' ',$line);
+		push(@old_sigs, $tokens[0]);
 		push(@deps,$tokens[-1]);
 	  }
 
@@ -212,11 +213,11 @@ sub cmd {
 	for my $i (0..$#deps) {
 	  my $dep = $deps[$i];
 
-	  my $diff = ($sigs[$i] eq $old_sigs[$i]) ? "" : "[CHANGED]";
 	  if (-e $dep) {
+		my $diff = ($sigs[$i] eq $old_sigs[$i]) ? "" : "[CHANGED]";
 		$self->mylog("  dep=$dep $diff");
 	  } else {
-		$self->mylog("  dep=$dep [NOT FOUND] $diff");
+		$self->mylog("  dep=$dep [NOT FOUND]");
 	  }
 	}
 	$self->mylog("  cmd=$cmd");
