@@ -148,9 +148,7 @@ sub cmd {
 	exit 1;
   }
 
-  my ($new_signature,$cmdsig,@sigs) = build_signatures($cmd,@deps);
-  my $old_signature = "";
-  my @old_sigs = ("") x @sigs;
+  my ($old_signature,@old_sigs);
 
   if (! -d $dir) {
 	# if no caching has ever been done
@@ -168,21 +166,44 @@ sub cmd {
 
   } else {
 	# everything exists, but we need to check whether anything has changed
-
+	
 	open(READ, "$namedir/signature") 
 		or die "no such file '$namedir/signature'";
 	chomp($old_signature = <READ>);
 
-	# throw away command signature line
-	<READ>;
+	# if we're caching, and nothing was provided, that means to
+	# recache the old command, so we need to read in what that command
+	# was, along with the dependencies
+	if ($cache_only && ! defined $cmd) {
+	  chomp($cmd = <READ>);
+	  $cmd =~ s/^.* CMD //;
+	  while (my $line = <READ>) {
+		my @tokens = split(' ',$line);
+		push(@deps,$tokens[-1]);
+	  }
 
-	# read in file dependency signatures
-	while (my $line = <READ>) {
-	  my @tokens = split(' ',$line);
-	  push(@old_sigs, $tokens[0]);
+	# otherwise, we're caching, but a new command and set of
+	# dependencies was provided, so we need to use those
+	} else {
+	  # throw away command signature line
+	  <READ>;
+	  # read in file dependency signatures
+	  while (my $line = <READ>) {
+		my @tokens = split(' ',$line);
+		push(@old_sigs, $tokens[0]);
+	  }
 	}
 	close (READ);
   }
+
+  # if caching was requested and no new command provided, make sure we
+  # found an old command
+  if ($cache_only and ! defined $cmd) {
+	$self->mylog("[$name] FATAL: requested cache of old command, but no old command found");
+	exit 1;
+  }
+
+  my ($new_signature,$cmdsig,@sigs) = build_signatures($cmd,@deps);
 
   if ($old_signature ne $new_signature) {
 	my $message = ($cache_only) ? "recaching" : "rebuilding";
