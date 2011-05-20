@@ -122,12 +122,15 @@ sub cmd {
 
   my ($cmd,@deps);
   my ($cache_only) = 0;
+  my ($rerun) = 0;
   while (my $arg = shift @args) {
 	if ($arg =~ /^--/) {
 	  $arg =~ s/^--//;
 	  if ($arg eq "cache-only") {
 		# print STDERR "* argument: --$arg\n";
 		$cache_only = 1;
+	  } elsif ($arg eq "rerun") {
+		$rerun = 1;
 	  } else {
 		print STDERR "* FATAL: CachePipe: unknown argument: --$arg\n";
 		exit 1;
@@ -174,7 +177,7 @@ sub cmd {
 	# if we're caching, and nothing was provided, that means to
 	# recache the old command, so we need to read in what that command
 	# was, along with the dependencies
-	if ($cache_only && ! defined $cmd) {
+	if (($cache_only or $rerun) and ! defined $cmd) {
 	  chomp($cmd = <READ>);
 	  $cmd =~ s/^.* CMD //;
 	  while (my $line = <READ>) {
@@ -201,6 +204,12 @@ sub cmd {
   # found an old command
   if ($cache_only and ! defined $cmd) {
 	$self->mylog("[$name] FATAL: requested cache of old command, but no old command found");
+	exit 1;
+  }
+
+  # if a rerun was requested, but no old signature found, error
+  if ($rerun and ! defined $cmd) {
+	$self->mylog("[$name] FATAL: requested rerun, but no old command found");
 	exit 1;
   }
 
