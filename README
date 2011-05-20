@@ -1,37 +1,71 @@
-Cachepipe: A caching pipeline that doesn't require you to care about it.
+CachePipe is a simple-to-use caching pipeline.  By this we mean:
 
--- USAGE -------------------------------------------------------------
+- *simple-to-use*: It is a simple wrapper around existing commands, and
+  doesn't require you to learn an extensive system
 
-$ export CACHEPIPE=/path/to/cachepipe
-$ export PERL5LIB=$PERL5LIB:$CACHEPIPE
+- *caching*: commands are cached based on the contents of an
+   explicitly-provided dependency list, and future invocations will
+   not re-run the command if any of them hav changed
+
+CachePipe uses git-style SHA-1 hashes of the dependencies and the
+command invocation itself to determine when changes have been made.
+This improves upon existing caching systems, which make use of
+unreliable indicators of command completion such as timestamps or even
+file existence.  It is implemented as a Perl module, and provides both
+a Perl API and a command-line interface.
+
+CachePipe supports a number of options.  See below for more detail.
+
+-- EXAMPLE -----------------------------------------------------------
+
+# Put this in your init file
+
+    export CACHEPIPE=/path/to/cachepipe
+    export PERL5LIB+=$CACHEPIPE
+    . $CACHEPIPE/bashrc
+
+You can now do the following:
 
 - From the command line:
 
-    $ perl -MCachePipe -e 'cache("name",["input-file1","input-file2"],COMMAND,["output-file1, output-file2, ..."])'
-
-  e.g., 
-
-    $ perl -MCachePipe -e 'cache("ls",["input-file"],"ls > input-file; cp input-file output-file",["output-file"])'
-
-- From the command line (easier):
-
-    $ source $CACHEPIPE/bashrc
-	$ cachecmd ls "ls > input-file" input-file
+    $ cachecmd copy-file "cp a b" a b
+	[copy-file] rebuilding...
+	  dep=a [CHANGED]
+	  dep=b [NOT FOUND]
+	  cmd=cp a b
+	  took 0 seconds (0s)
+	$ cachecmd copy-file "cp a b" a b
+	[copy-file] cached, skipping...
 
 - From a Perl script:
 
+    use CachePipe;
+
     my $pipe = new CachePipe();
-    $pipe->cmd($name,\@input_deps,$cmd,\@output_deps);
+    $pipe->cmd("copy-file","cp a b",["a","b"]);
 
-  e.g.,
-
-    $pipe->cmd("ls",["input-file"],"ls > input-file; cp input-file output-file",["output-file"]);
+-- OPTIONS -----------------------------------------------------------
 
 You can tell the command to build the cache files without actually
 running the command using the --cache-only flag between the command
 name and the command, i.e.
 
-    $ cachecmd ls --cache-only "ls > input-file" input-file
+    $ cachecmd copy-file --cache-only "cp a b" a b
 
-This will compute the hash over all the dependencies and the command as
-if the current state were the desired state.
+This will compute the hash over all the dependencies and the command
+as if the current state were the desired state.  Note that all the
+dependencies must exist.
+
+If you have already run a command, you can easily run it again:
+
+    $ cachecmd copy-file --rerun
+
+Sometimes you wan to just recompute the hashes of a run, as if it had
+just been successfully completed, but without actually re-running the
+command.  If the command has already been run once, you can type:
+
+    $ cachecmd copy-file --cache-only
+
+This flag also works with a new command, e.g.,
+
+    $ cachecmd copy-file --cache-only "cp a b" a b
