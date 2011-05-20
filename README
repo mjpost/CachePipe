@@ -69,3 +69,10 @@ command.  If the command has already been run once, you can type:
 This flag also works with a new command, e.g.,
 
     $ cachecmd copy-file --cache-only "cp a b" a b
+
+-- AUTHORS -----------------------------------------------------------
+
+This was all Adam Lopez' idea.
+
+Matt Post <post@jhu.edu>
+Adam Lopez <alopez@cs.jhu.edu>
