@@ -7,6 +7,9 @@ CachePipe is a simple-to-use caching pipeline.  By this we mean:
    explicitly-provided dependency list, and future invocations will
    not re-run the command if any of them hav changed
 
+- *pipeline*: CachePipe is originally designed to be used as part of a
+   long pipeline of many different steps
+
 CachePipe uses git-style SHA-1 hashes of the dependencies and the
 command invocation itself to determine when changes have been made.
 This improves upon existing caching systems, which make use of
