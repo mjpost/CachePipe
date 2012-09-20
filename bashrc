@@ -3,11 +3,15 @@
 
 cachecmd_usage() {
 	cat <<EOF
-Usage: cachecmd ID command [dep1 [dep2 ...]]
+Usage: cachecmd ID "command arg1 arg2" [dep1 [dep2 ...]]
+       cachecmd ID --rerun
+       cachecmd ID --cache-only
+       cachecmd ID --cache-only "command arg1 arg2" [dep1 [dep2 ...]]
 where
   ID is the command ID (unique within the directory)
   command is the command to run (remember to quote multiword commands)
   dep1 .. depN are file and environment dependencies
+  --cache-only builds the cache files without actually running the command
 EOF
 }
 
